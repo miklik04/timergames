@@ -479,17 +479,18 @@
                     srvRoomId = code;
                     srvIsHost = false;
                     
-                    let data = snapshot.val();
-                    let players = data.activePlayers || [];
-                    
-                    // Přidáme hráče do hry, pokud tam ještě není
-                    if (!players.includes(srvMyName)) {
-                        players.push(srvMyName);
+                    // Bezpečně přidáme hráče do databáze, aniž bychom smazali ostatní
+                    db.ref('rooms/' + srvRoomId + '/activePlayers').once('value', activeSnap => {
+                        let active = activeSnap.val() || [];
+                        if (!active.includes(srvMyName)) {
+                            active.push(srvMyName);
+                        }
+                        
                         db.ref('rooms/' + srvRoomId).update({ 
-                            activePlayers: players,
+                            activePlayers: active,
                             [`allPlayers/${srvMyName}`]: true 
                         });
-                    }
+                    });
                     
                     document.getElementById('srv-display-room').textContent = srvRoomId;
                     document.getElementById('srv-display-room').style.color = '#00ff00';
