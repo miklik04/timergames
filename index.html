@@ -450,17 +450,18 @@
             if (db) db.ref('rooms').off(); 
         }
 
-        function srvCreateRoom() {
+        function function srvCreateRoom() {
             srvMyName = document.getElementById('srv-my-name').value || "Host";
             srvRoomId = Math.random().toString(36).substring(2, 6).toUpperCase();
             srvIsHost = true;
 
-            // Host vytvoří základní stav místnosti
+            // Host vytvoří místnost a uloží se do objektu players
             db.ref('rooms/' + srvRoomId).set({
                 state: 'lobby',
                 host: srvMyName,
-                allPlayers: { [srvMyName]: true },
-                activePlayers: [srvMyName],
+                players: {
+                    [srvMyName]: true
+                },
                 round: 1
             });
 
@@ -479,17 +480,9 @@
                     srvRoomId = code;
                     srvIsHost = false;
                     
-                    // Bezpečně přidáme hráče do databáze, aniž bychom smazali ostatní
-                    db.ref('rooms/' + srvRoomId + '/activePlayers').once('value', activeSnap => {
-                        let active = activeSnap.val() || [];
-                        if (!active.includes(srvMyName)) {
-                            active.push(srvMyName);
-                        }
-                        
-                        db.ref('rooms/' + srvRoomId).update({ 
-                            activePlayers: active,
-                            [`allPlayers/${srvMyName}`]: true 
-                        });
+                    // Bezpečně přidá nového hráče do objektu players
+                    db.ref('rooms/' + srvRoomId + '/players').update({
+                        [srvMyName]: true
                     });
                     
                     document.getElementById('srv-display-room').textContent = srvRoomId;
@@ -502,7 +495,6 @@
         }
 
         function srvListenToRoom() {
-            // Hlavní smyčka, která hlídá změny na serveru
             db.ref('rooms/' + srvRoomId).on('value', snapshot => {
                 srvRoomData = snapshot.val();
                 if (!srvRoomData) return;
@@ -513,11 +505,14 @@
         function srvUpdateUI() {
             if (!srvRoomData) return;
 
-            // 1. Vykreslení jmen hráčů
+            // 1. Spolehlivé vykreslení jmen všech hráčů z objektu databáze
             const playersContainer = document.getElementById('srv-online-players-list');
             playersContainer.innerHTML = '';
-            let active = srvRoomData.activePlayers || [];
-            active.forEach(p => {
+            
+            let playersObj = srvRoomData.players || {};
+            let activeNames = Object.keys(playersObj);
+
+            activeNames.forEach(p => {
                 let color = (p === srvMyName) ? '#ffffff' : '#00aa00';
                 playersContainer.innerHTML += `<div style="color: ${color}; font-size: 1.2rem; margin-top: 5px;">⬤ ${p}</div>`;
             });
@@ -547,7 +542,7 @@
                 if (srvIsHost) {
                     btn.textContent = "START GAME";
                     btn.style.backgroundColor = '#00aa00';
-                    hint.textContent = `WAITING FOR PLAYERS (${active.length})`;
+                    hint.textContent = `WAITING FOR PLAYERS (${activeNames.length})`;
                 } else {
                     btn.textContent = "WAITING FOR HOST";
                     btn.style.backgroundColor = '#555';
@@ -566,7 +561,6 @@
                     subtitle.textContent += ` - ${currentPlayer.toUpperCase()}'S TURN`;
                     
                     if (currentPlayer === srvMyName) {
-                        // Jsem na řadě!
                         if (srvGameStateLocal === 'idle') {
                             btn.textContent = `START (${srvMyName})`;
                             btn.style.backgroundColor = '#00aa00';
@@ -574,14 +568,12 @@
                             hint.textContent = "YOUR TURN! PRESS SPACEBAR";
                         }
                     } else {
-                        // Hraje někdo jiný
                         btn.textContent = `WAITING FOR ${currentPlayer.toUpperCase()}`;
                         btn.style.backgroundColor = '#555';
                         btn.classList.remove('stop-mode');
                         hint.textContent = "WATCHING...";
                     }
                 } else {
-                    // Kolo skončilo, Host vyhodnocuje
                     if (srvIsHost) {
                         btn.textContent = "EVALUATING...";
                         srvHostEvaluateRound();
@@ -591,7 +583,7 @@
                     }
                 }
             }
-            // --- STAV VYHODNOCENÍ (ELIMINACE) ---
+            // --- STAV VYHODNOCENÍ ---
             else if (srvRoomData.state === 'evaluating') {
                 if (srvRoomData.winner) {
                     srvShowOverlay(`${srvRoomData.winner.toUpperCase()} WINS!`, `SURVIVOR!`, true);
