@@ -111,43 +111,26 @@
         /* ========================================= */
         @media (max-width: 900px) {
             body { 
-                overflow-y: auto; /* Povolí rolování nahoru a dolů na mobilu */
-                height: auto; 
-                min-height: 100vh; 
+                overflow-y: auto; height: auto; min-height: 100vh; 
             }
             .view { 
-                height: auto; min-height: 100vh; 
-                justify-content: flex-start; padding-bottom: 40px; 
+                height: auto; min-height: 100vh; justify-content: flex-start; padding-bottom: 40px; 
             }
-            
-            /* Zmenšení menu pro mobily */
             #menu-clock { font-size: 5rem; margin-top: 60px; margin-bottom: 30px; }
             .menu-buttons { flex-wrap: wrap; justify-content: center; max-width: 320px; gap: 15px; }
             .menu-btn { width: 140px; height: 140px; font-size: 1.2rem; }
-            
-            /* Připnutí navigace nahoru */
             .top-bar { position: fixed; background: rgba(0,0,0,0.9); padding: 10px 20px; top: 0; left: 0; border-bottom: 1px solid #ff0000; }
-            
-            /* Úprava nápisů a časomíry uprostřed */
             h1 { position: relative; top: 0; font-size: 2.5rem; margin-top: 90px; margin-bottom: 10px; width: 100%; }
             .subtitle { font-size: 1.3rem; margin-bottom: 15px; }
             .game-center { margin-right: 0; width: 100%; padding: 0 20px; box-sizing: border-box; }
             .main-timer { font-size: 5.5rem; height: 100px; margin-bottom: 10px; }
             .target-time { font-size: 1.6rem; }
             .action-btn { padding: 15px 30px; font-size: 1.2rem; width: 100%; max-width: 300px; }
-            .spacebar-hint { display: none; } /* Na mobilu schováme nápovědu pro mezerník */
-            
-            /* Přesunutí pravého panelu pod hru */
-            .right-panel {
-                position: relative; right: 0; top: 0; width: 90%; max-width: 400px;
-                margin: 20px auto 0 auto; max-height: none; overflow: visible;
-            }
-            
-            /* Zmenšení vyskakovacích oken */
+            .spacebar-hint { display: none; } 
+            .right-panel { position: relative; right: 0; top: 0; width: 90%; max-width: 400px; margin: 20px auto 0 auto; max-height: none; overflow: visible; }
             #rules-modal { width: 90% !important; max-width: 400px; padding: 20px; box-sizing: border-box; }
             #rules-modal h2 { font-size: 1.5rem; }
             #rules-modal p { font-size: 1rem; }
-            
             .fullscreen-overlay h2 { font-size: 2.5rem !important; }
             #imp-reveal-title { font-size: 1.8rem !important; }
             .imp-vote-btn { font-size: 1.3rem; padding: 10px; }
@@ -197,32 +180,41 @@
         </div>
     </div>
 
-    <!-- HRA 2: SURVIVAL MODE -->
+    <!-- HRA 2: SURVIVAL MODE (MULTIPLAYER LOBBY) -->
     <div id="survival-view" class="view">
         <div class="top-bar"><div class="circle-icon" onclick="showRules('srv')">i</div><div class="text-icon" onclick="backToMenu()">MENU</div></div>
         <h1>SURVIVAL MODE</h1>
+        
         <div class="game-center">
-            <div class="subtitle digital-font" id="srv-subtitle">ROUND 1/? - PLAYER1</div>
+            <div class="subtitle digital-font" id="srv-subtitle">ONLINE MULTIPLAYER</div>
             <div class="target-time digital-font" id="srv-target-display">TARGET TIME: 0.00</div>
             <div class="main-timer digital-font" id="srv-timer-display">00:00</div>
             <button class="action-btn" id="srv-action-btn" onclick="srvHandleAction()">START ROUND</button>
-            <div class="spacebar-hint">YOU CAN USE SPACEBAR</div>
+            <div class="spacebar-hint">WAITING FOR PLAYERS...</div>
             <div id="srv-result-message" class="result-msg digital-font"></div>
         </div>
+        
         <div class="right-panel">
             <div class="panel-section">
-                <div>Number of players</div>
-                <input type="number" id="srv-num-players" value="5" min="2" max="10" onchange="updatePlayerInputs('srv')">
+                <div>Your Name</div>
+                <input type="text" id="srv-my-name" value="Player1">
             </div>
             <div class="panel-section">
-                <div>Name of players</div>
-                <div id="srv-players-list" class="players-list-container"></div>
+                <button class="action-btn" style="padding: 10px; font-size: 1rem; width: 100%;" onclick="srvCreateRoom()">CREATE ROOM</button>
             </div>
             <div class="panel-section" style="border-top: 1px solid red; padding-top: 10px;">
-                <div style="margin-bottom: 10px;" id="srv-right-round-title">ROUND 1 / ?</div>
-                <div class="results-list digital-font" id="srv-results-container"></div>
+                <div>Room Code</div>
+                <input type="text" id="srv-room-code-input" placeholder="e.g. ABCD" style="text-transform: uppercase;">
+                <button class="action-btn" style="padding: 10px; font-size: 1rem; margin-top:5px; background-color: #555; color: white; width: 100%;" onclick="srvJoinRoom()">JOIN ROOM</button>
+            </div>
+            <div class="panel-section" style="border-top: 1px solid red; padding-top: 10px;">
+                <div style="margin-bottom: 10px; font-weight: bold;">ROOM: <span id="srv-display-room" style="color: #00ff00;">---</span></div>
+                <div class="players-list-container" id="srv-online-players-list">
+                    <!-- Zde se automaticky objeví připojení hráči -->
+                </div>
             </div>
         </div>
+
         <div id="srv-elimination-overlay" class="fullscreen-overlay">
             <h2 id="srv-elimination-text">PLAYER ELIMINATED!</h2>
             <div class="overlay-hint">Press SPACE or click the button below</div>
@@ -309,7 +301,27 @@
         <button class="close-btn" onclick="hideRules()">CLOSE</button>
     </div>
 
+    <!-- NAČTENÍ FIREBASE (COMPAT VERZE PRO JEDNODUCHÉ POUŽITÍ) -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
+
     <script>
+        // TVÁ FIREBASE KONFIGURACE (Očištěná a upravená)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4CTj5rM751jOQQYwOTT8Li-3UxBgo3Cg",
+            authDomain: "timergames.firebaseapp.com",
+            databaseURL: "https://timergames-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "timergames",
+            storageBucket: "timergames.firebasestorage.app",
+            messagingSenderId: "23359936256",
+            appId: "1:23359936256:web:548ee9c3817c09702185e5",
+            measurementId: "G-5JYNFRPDJR"
+        };
+
+        // INICIALIZACE DATABÁZE
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         // ==========================================
         // GLOBÁLNÍ A MENU
         // ==========================================
@@ -332,7 +344,7 @@
                 activeGame = 'htt'; updatePlayerInputs('htt'); initHtt();
             } else if (gameId === 'survival') {
                 document.getElementById('survival-view').classList.add('active-view');
-                activeGame = 'srv'; updatePlayerInputs('srv'); initSrv();
+                activeGame = 'srv'; initSrv(); // Zde nenačítáme lokální inputy
             } else if (gameId === 'impostor') {
                 document.getElementById('impostor-view').classList.add('active-view');
                 activeGame = 'imp'; updatePlayerInputs('imp'); initImp();
@@ -365,13 +377,12 @@
             const modal = document.getElementById('rules-modal');
             const text = document.getElementById('rules-text');
             if(mode === 'htt') text.innerHTML = `Stop the timer exactly at the given <strong>TARGET TIME</strong>.<br>The timer will be hidden. Guess the moment blind!<br>The player with the smallest difference wins.`;
-            else if (mode === 'srv') text.innerHTML = `<strong>SURVIVAL MODE</strong><br>All players share the same target time. The player with the worst deviation is <strong>ELIMINATED</strong>. Last one standing wins.`;
-            else if (mode === 'imp') text.innerHTML = `<strong>IMPOSTOR MODE</strong><br>One player is randomly chosen as the Impostor. They don't know the exact time!<br>After everyone plays, you must <strong>VOTE</strong> to find the Impostor based on their performance.`;
+            else if (mode === 'srv') text.innerHTML = `<strong>SURVIVAL MODE (MULTIPLAYER)</strong><br>Create a room or join a friend's room. All players share the same target time. The player with the worst deviation is <strong>ELIMINATED</strong>.`;
+            else if (mode === 'imp') text.innerHTML = `<strong>IMPOSTOR MODE</strong><br>One player is randomly chosen as the Impostor. They don't know the exact time!<br>After everyone plays, you must <strong>VOTE</strong> to find the Impostor.`;
             else if (mode === 'fth') text.innerHTML = `<strong>FIRST TO HIT</strong><br>Keep taking turns until someone hits the Target Time <strong>EXACTLY</strong> (0.00s difference). First to do it wins the game!`;
             modal.style.display = 'block';
         }
         function hideRules() { document.getElementById('rules-modal').style.display = 'none'; }
-
 
         // ==========================================
         // 1. HIT THE TIME
@@ -412,75 +423,90 @@
         }
 
         // ==========================================
-        // 2. SURVIVAL MODE
+        // 2. SURVIVAL MODE (ONLINE LOBBY)
         // ==========================================
-        let srvGameState = 'setup', srvTargetMs = 0, srvStart = 0, srvTotalRounds = 1, srvCurrentRound = 1;
-        let srvActivePlayers = [], srvQueue = [], srvRoundResults = [], srvIsTieBreaker = false;
+        let srvRoomId = null;
+        let srvMyName = "";
+        let srvIsHost = false;
+
         function initSrv() {
-            const inputs = document.getElementsByClassName('srv-player-name'); srvActivePlayers = [];
-            for(let i=0; i<inputs.length; i++) srvActivePlayers.push(inputs[i].value || `Player${i+1}`);
-            if(srvActivePlayers.length < 2) return;
-            srvTotalRounds = srvActivePlayers.length - 1; srvCurrentRound = 1; srvIsTieBreaker = false; srvStartNewPhase(srvActivePlayers, true); 
+            document.getElementById('srv-online-players-list').innerHTML = '';
+            document.getElementById('srv-display-room').textContent = '---';
+            document.getElementById('srv-display-room').style.color = '#ff0000';
+            srvRoomId = null;
+            // Odpojení od předchozí databáze při návratu do menu
+            if (db) db.ref('rooms').off(); 
         }
-        function srvStartNewPhase(playersToPlay, generateNewTarget = false) {
-            srvQueue = [...playersToPlay]; srvRoundResults = [];
-            if(generateNewTarget) {
-                srvTargetMs = Math.floor(Math.random() * 4000) + 2000; 
-                document.getElementById('srv-target-display').textContent = `TARGET TIME: ${(srvTargetMs / 1000).toFixed(2)}`;
-            }
-            srvUpdateRightPanel(); srvResetUI();
+
+        function srvCreateRoom() {
+            srvMyName = document.getElementById('srv-my-name').value || "Host";
+            // Vygeneruje náhodný 4místný kód (např. ABCD)
+            srvRoomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+            srvIsHost = true;
+
+            // Vytvoří místnost ve Firebase
+            db.ref('rooms/' + srvRoomId).set({
+                state: 'lobby',
+                host: srvMyName,
+                players: {
+                    [srvMyName]: true
+                }
+            });
+
+            document.getElementById('srv-display-room').textContent = srvRoomId;
+            document.getElementById('srv-display-room').style.color = '#00ff00';
+            srvListenToRoom();
         }
-        function srvResetUI() {
-            if(srvQueue.length === 0) return;
-            document.getElementById('srv-timer-display').textContent = '00:00'; document.getElementById('srv-timer-display').classList.remove('hide-timer'); document.getElementById('srv-result-message').textContent = '';
-            const pName = srvQueue[0]; const roundText = srvIsTieBreaker ? `TIE-BREAKER` : `ROUND ${srvCurrentRound}/${srvTotalRounds}`;
-            document.getElementById('srv-subtitle').textContent = `${roundText} - ${pName.toUpperCase()}`;
-            const btn = document.getElementById('srv-action-btn'); btn.textContent = `START (${pName})`; btn.classList.remove('stop-mode'); srvGameState = 'waiting';
+
+        function srvJoinRoom() {
+            srvMyName = document.getElementById('srv-my-name').value || "Guest";
+            const code = document.getElementById('srv-room-code-input').value.toUpperCase();
+            if (!code) return alert("Enter a room code!");
+
+            // Zkontroluje, zda místnost existuje
+            db.ref('rooms/' + code).once('value', snapshot => {
+                if (snapshot.exists()) {
+                    srvRoomId = code;
+                    srvIsHost = false;
+                    
+                    // Přidá nového hráče do místnosti
+                    db.ref('rooms/' + srvRoomId + '/players').update({
+                        [srvMyName]: true
+                    });
+                    
+                    document.getElementById('srv-display-room').textContent = srvRoomId;
+                    document.getElementById('srv-display-room').style.color = '#00ff00';
+                    srvListenToRoom();
+                } else {
+                    alert("Room not found!");
+                }
+            });
         }
+
+        function srvListenToRoom() {
+            // Naslouchá změnám v databázi v reálném čase
+            db.ref('rooms/' + srvRoomId).on('value', snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                // Vykreslí jména všech připojených hráčů
+                const playersContainer = document.getElementById('srv-online-players-list');
+                playersContainer.innerHTML = '';
+                
+                if (data.players) {
+                    Object.keys(data.players).forEach(playerName => {
+                        playersContainer.innerHTML += `<div style="color: #00aa00; font-size: 1.2rem; margin-top: 5px;">⬤ ${playerName}</div>`;
+                    });
+                }
+            });
+        }
+
         function srvHandleAction() {
-            if (document.getElementById('rules-modal').style.display === 'block') return;
-            if (srvGameState === 'message') return;
-            if (srvGameState === 'waiting') {
-                srvGameState = 'running'; srvStart = Date.now(); document.getElementById('srv-timer-display').classList.add('hide-timer');
-                const btn = document.getElementById('srv-action-btn'); btn.textContent = 'STOP'; btn.classList.add('stop-mode');
-            } else if (srvGameState === 'running') {
-                const elapsedMs = Date.now() - srvStart; srvGameState = 'finished';
-                document.getElementById('srv-timer-display').classList.remove('hide-timer'); document.getElementById('srv-timer-display').textContent = (elapsedMs / 1000).toFixed(2);
-                const diffMs = elapsedMs - srvTargetMs; const diffSec = (diffMs / 1000).toFixed(2); let sign = diffMs > 0 ? '+' : '';
-                document.getElementById('srv-result-message').textContent = `DIFFERENCE: ${sign}${diffSec}s`;
-                const pName = srvQueue.shift(); srvRoundResults.push({ name: pName, diffMs: diffMs, absDiff: Math.abs(diffMs), displayDiff: `${sign}${diffSec}` });
-                srvUpdateRightPanel();
-                const btn = document.getElementById('srv-action-btn'); btn.textContent = srvQueue.length > 0 ? 'NEXT PLAYER' : 'FINISH ROUND'; btn.classList.remove('stop-mode');
-            } else if (srvGameState === 'finished') {
-                if (srvQueue.length > 0) srvResetUI(); else srvEvaluatePhase();
-            }
+            alert("Spojení funguje! Hra samotná zatím čeká na propojení ve 2. kroku.");
         }
-        function srvEvaluatePhase() {
-            let maxDiff = -1; srvRoundResults.forEach(r => { if(r.absDiff > maxDiff) maxDiff = r.absDiff; });
-            let worstPlayers = srvRoundResults.filter(r => r.absDiff === maxDiff).map(r => r.name);
-            if (worstPlayers.length > 1) {
-                srvIsTieBreaker = true; srvShowOverlay(`TIE-BREAKER!`, `${worstPlayers.join(' & ')}`, false); srvStartNewPhase(worstPlayers, false); 
-            } else {
-                const eliminatedName = worstPlayers[0]; srvActivePlayers = srvActivePlayers.filter(p => p !== eliminatedName);
-                if (srvActivePlayers.length === 1) { srvShowOverlay(`${srvActivePlayers[0]} WINS!`, `SURVIVOR!`, true); } 
-                else { srvCurrentRound++; srvIsTieBreaker = false; srvShowOverlay(`${eliminatedName.toUpperCase()}`, `ELIMINATED!`, false); srvStartNewPhase(srvActivePlayers, true); }
-            }
-        }
-        function srvUpdateRightPanel() {
-            document.getElementById('srv-right-round-title').textContent = srvIsTieBreaker ? `TIE-BREAKER` : `ROUND ${srvCurrentRound} / ${srvTotalRounds}`;
-            let html = ''; srvRoundResults.forEach((e, i) => { let color = e.diffMs > 0 ? '#ff5555' : '#55ff55'; html += `<div><span>${i + 1}. ${e.name}</span><span style="color:${color}">${e.displayDiff}</span></div>`; });
-            document.getElementById('srv-results-container').innerHTML = html;
-        }
-        function srvShowOverlay(mainText, subText, isWinner) {
-            srvGameState = 'message'; const overlay = document.getElementById('srv-elimination-overlay');
-            document.getElementById('srv-elimination-text').innerHTML = `${mainText}<br>${subText}`;
-            const btn = document.getElementById('srv-continue-btn'); overlay.style.display = 'flex';
-            if(isWinner) { overlay.classList.add('winner'); btn.textContent = 'PLAY AGAIN'; btn.style.backgroundColor = '#00aa00'; btn.style.color = 'black'; } 
-            else { overlay.classList.remove('winner'); btn.textContent = 'CONTINUE'; btn.style.backgroundColor = '#ff0000'; btn.style.color = 'white'; }
-        }
+        
         function srvDismissOverlay() {
             document.getElementById('srv-elimination-overlay').style.display = 'none';
-            if(srvActivePlayers.length === 1) initSrv(); else srvResetUI();
         }
 
         // ==========================================
@@ -576,72 +602,43 @@
         // 4. FIRST TO HIT
         // ==========================================
         let fthGameState = 'waiting', fthTargetMs = 0, fthStart = 0, fthPlayers = [], fthCurrentIdx = 0, fthBestAttempts = [];
-        
         function initFth() {
             const inputs = document.getElementsByClassName('fth-player-name'); fthPlayers = [];
             for(let i=0; i<inputs.length; i++) fthPlayers.push(inputs[i].value || `Player${i+1}`);
             if(fthPlayers.length < 1) return;
-
-            fthCurrentIdx = 0; fthBestAttempts = [];
-            fthTargetMs = Math.floor(Math.random() * 4000) + 2000;
+            fthCurrentIdx = 0; fthBestAttempts = []; fthTargetMs = Math.floor(Math.random() * 4000) + 2000;
             document.getElementById('fth-target-display').textContent = `TARGET TIME: ${(fthTargetMs / 1000).toFixed(2)}`;
-            document.getElementById('fth-winner-overlay').style.display = 'none';
-            fthUpdateRightPanel(); fthResetUI();
+            document.getElementById('fth-winner-overlay').style.display = 'none'; fthUpdateRightPanel(); fthResetUI();
         }
-
         function fthResetUI() {
-            document.getElementById('fth-timer-display').textContent = '00:00';
-            document.getElementById('fth-timer-display').classList.remove('hide-timer');
-            document.getElementById('fth-result-message').textContent = '';
-            
-            const pName = fthPlayers[fthCurrentIdx];
-            document.getElementById('fth-subtitle').textContent = `TURN: ${pName.toUpperCase()}`;
-            
-            const btn = document.getElementById('fth-action-btn');
-            btn.textContent = `START (${pName})`; btn.classList.remove('stop-mode');
-            fthGameState = 'waiting';
+            document.getElementById('fth-timer-display').textContent = '00:00'; document.getElementById('fth-timer-display').classList.remove('hide-timer'); document.getElementById('fth-result-message').textContent = '';
+            const pName = fthPlayers[fthCurrentIdx]; document.getElementById('fth-subtitle').textContent = `TURN: ${pName.toUpperCase()}`;
+            const btn = document.getElementById('fth-action-btn'); btn.textContent = `START (${pName})`; btn.classList.remove('stop-mode'); fthGameState = 'waiting';
         }
-
         function fthHandleAction() {
             if (document.getElementById('rules-modal').style.display === 'block') return;
             if (fthGameState === 'message') return;
-
             if (fthGameState === 'waiting') {
-                fthGameState = 'running'; fthStart = Date.now();
-                document.getElementById('fth-timer-display').classList.add('hide-timer');
-                const btn = document.getElementById('fth-action-btn');
-                btn.textContent = 'STOP'; btn.classList.add('stop-mode');
+                fthGameState = 'running'; fthStart = Date.now(); document.getElementById('fth-timer-display').classList.add('hide-timer');
+                const btn = document.getElementById('fth-action-btn'); btn.textContent = 'STOP'; btn.classList.add('stop-mode');
             } else if (fthGameState === 'running') {
                 const elapsedMs = Date.now() - fthStart; fthGameState = 'finished';
-
-                document.getElementById('fth-timer-display').classList.remove('hide-timer');
-                document.getElementById('fth-timer-display').textContent = (elapsedMs / 1000).toFixed(2);
-
-                const diffMs = elapsedMs - fthTargetMs; const diffSec = (diffMs / 1000).toFixed(2);
-                let sign = diffMs > 0 ? '+' : '';
+                document.getElementById('fth-timer-display').classList.remove('hide-timer'); document.getElementById('fth-timer-display').textContent = (elapsedMs / 1000).toFixed(2);
+                const diffMs = elapsedMs - fthTargetMs; const diffSec = (diffMs / 1000).toFixed(2); let sign = diffMs > 0 ? '+' : '';
                 document.getElementById('fth-result-message').textContent = `DIFFERENCE: ${sign}${diffSec}s`;
-
-                const pName = fthPlayers[fthCurrentIdx];
-                fthBestAttempts.push({ name: pName, diffMs: diffMs, absDiff: Math.abs(diffMs), displayDiff: `${sign}${diffSec}` });
+                const pName = fthPlayers[fthCurrentIdx]; fthBestAttempts.push({ name: pName, diffMs: diffMs, absDiff: Math.abs(diffMs), displayDiff: `${sign}${diffSec}` });
                 fthUpdateRightPanel();
-
                 if (diffSec === "0.00" || diffSec === "-0.00") {
-                    fthGameState = 'message';
-                    document.getElementById('fth-winner-text').textContent = `${pName.toUpperCase()} WINS!`;
-                    document.getElementById('fth-winner-overlay').style.display = 'flex';
+                    fthGameState = 'message'; document.getElementById('fth-winner-text').textContent = `${pName.toUpperCase()} WINS!`; document.getElementById('fth-winner-overlay').style.display = 'flex';
                 } else {
-                    const btn = document.getElementById('fth-action-btn');
-                    btn.textContent = 'NEXT PLAYER'; btn.classList.remove('stop-mode');
+                    const btn = document.getElementById('fth-action-btn'); btn.textContent = 'NEXT PLAYER'; btn.classList.remove('stop-mode');
                 }
             } else if (fthGameState === 'finished') {
-                fthCurrentIdx = (fthCurrentIdx + 1) % fthPlayers.length;
-                fthResetUI();
+                fthCurrentIdx = (fthCurrentIdx + 1) % fthPlayers.length; fthResetUI();
             }
         }
-
         function fthUpdateRightPanel() {
-            const sorted = [...fthBestAttempts].sort((a, b) => a.absDiff - b.absDiff).slice(0, 10);
-            let html = '';
+            const sorted = [...fthBestAttempts].sort((a, b) => a.absDiff - b.absDiff).slice(0, 10); let html = '';
             sorted.forEach((e, i) => { let color = e.diffMs > 0 ? '#ff5555' : '#55ff55'; html += `<div><span>${i + 1}. ${e.name}</span><span style="color:${color}">${e.displayDiff}</span></div>`; });
             for(let i = sorted.length; i < 10; i++) { html += `<div><span>${i + 1}. -</span><span>-</span></div>`; }
             document.getElementById('fth-results-container').innerHTML = html;
