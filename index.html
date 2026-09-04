@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Time Games</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
@@ -19,7 +19,7 @@
         .active-view { display: flex; }
 
         /* --- HLAVNÍ MENU --- */
-        #menu-clock { font-size: 8rem; margin-bottom: 50px; text-shadow: 0 0 10px rgba(255, 0, 0, 0.7); }
+        #menu-clock { font-size: 8rem; margin-bottom: 50px; text-shadow: 0 0 10px rgba(255, 0, 0, 0.7); text-align: center; }
         .menu-buttons { display: flex; gap: 20px; }
         .menu-btn {
             background: transparent; border: 4px solid #ff0000; color: #ff0000;
@@ -37,38 +37,40 @@
         }
         .circle-icon, .text-icon {
             border: 2px solid #ff0000; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: background-color 0.2s;
+            cursor: pointer; transition: background-color 0.2s; background: black;
         }
         .circle-icon { width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem; }
         .text-icon { height: 50px; padding: 0 20px; border-radius: 25px; font-size: 1.2rem; font-weight: bold; }
         .circle-icon:hover, .text-icon:hover { background-color: rgba(255, 0, 0, 0.2); }
-        h1 { font-size: 4rem; margin: 20px 0 0 0; position: absolute; top: 20px; }
-        .subtitle { font-size: 2rem; margin-bottom: 20px; color: #fff; }
+        
+        h1 { font-size: 4rem; margin: 20px 0 0 0; position: absolute; top: 20px; text-align: center; }
+        .subtitle { font-size: 2rem; margin-bottom: 20px; color: #fff; text-align: center; }
         .game-center { display: flex; flex-direction: column; align-items: center; margin-right: 300px; }
-        .target-time { color: #00ff00; font-size: 2.5rem; margin-bottom: 20px; }
+        .target-time { color: #00ff00; font-size: 2.5rem; margin-bottom: 20px; text-align: center; }
         .main-timer { font-size: 8rem; margin-bottom: 20px; height: 150px; display: flex; align-items: center; justify-content: center; }
         .hide-timer { visibility: hidden; }
+        
         .action-btn {
             background-color: #00aa00; color: black; border: none; border-radius: 25px;
             padding: 15px 50px; font-size: 1.5rem; font-weight: bold; cursor: pointer;
-            margin-bottom: 10px; text-transform: uppercase;
+            margin-bottom: 10px; text-transform: uppercase; text-align: center;
         }
         .action-btn.stop-mode { background-color: #ff0000; color: white; }
-        .spacebar-hint { font-size: 1.2rem; margin-top: 10px; }
-        .result-msg { margin-top: 20px; font-size: 1.5rem; height: 30px; }
+        .spacebar-hint { font-size: 1.2rem; margin-top: 10px; text-align: center; }
+        .result-msg { margin-top: 20px; font-size: 1.5rem; height: 30px; text-align: center; }
 
         /* --- PRAVÝ PANEL --- */
         .right-panel {
             position: absolute; right: 40px; top: 100px; width: 250px; border: 2px solid #ff0000;
             padding: 20px; display: flex; flex-direction: column; align-items: center;
-            max-height: 80vh; overflow-y: auto;
+            max-height: 80vh; overflow-y: auto; background-color: rgba(0,0,0,0.8);
         }
         .panel-section { margin-bottom: 20px; width: 100%; text-align: center; }
         .right-panel input {
             background: transparent; border: 1px solid #ff0000; color: #ff0000; text-align: center;
             padding: 5px; margin-top: 5px; width: 80%; font-family: inherit;
         }
-        .players-list-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .players-list-container { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
         .results-list { text-align: left; width: 100%; font-size: 0.9rem; line-height: 1.5; }
         .results-list div { display: flex; justify-content: space-between; }
 
@@ -87,21 +89,69 @@
         .close-btn:hover { background-color: #ff0000; color: black; }
         
         .fullscreen-overlay {
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.95); z-index: 80; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center;
+            align-items: center; justify-content: center; text-align: center; padding: 20px; box-sizing: border-box;
         }
         .fullscreen-overlay h2 { font-size: 4rem; margin: 0 0 20px 0; color: #ff0000; text-shadow: 0 0 20px #ff0000; }
         .fullscreen-overlay.winner h2 { color: #00ff00; text-shadow: 0 0 20px #00ff00; }
         .overlay-hint { color: white; font-size: 1.5rem; margin-bottom: 30px; line-height: 1.5; }
         
         /* Impostor Vote Buttons */
+        #imp-vote-buttons { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 400px; }
         .imp-vote-btn {
             background: transparent; border: 2px solid #ff0000; color: #ff0000;
             padding: 15px; font-size: 2rem; cursor: pointer; text-transform: uppercase;
             transition: background-color 0.2s; width: 100%; text-align: center;
         }
         .imp-vote-btn:hover { background-color: rgba(255, 0, 0, 0.2); }
+
+        /* ========================================= */
+        /* MOBILNÍ ZOBRAZENÍ (RESPONSIVE DESIGN)     */
+        /* ========================================= */
+        @media (max-width: 900px) {
+            body { 
+                overflow-y: auto; /* Povolí rolování nahoru a dolů na mobilu */
+                height: auto; 
+                min-height: 100vh; 
+            }
+            .view { 
+                height: auto; min-height: 100vh; 
+                justify-content: flex-start; padding-bottom: 40px; 
+            }
+            
+            /* Zmenšení menu pro mobily */
+            #menu-clock { font-size: 5rem; margin-top: 60px; margin-bottom: 30px; }
+            .menu-buttons { flex-wrap: wrap; justify-content: center; max-width: 320px; gap: 15px; }
+            .menu-btn { width: 140px; height: 140px; font-size: 1.2rem; }
+            
+            /* Připnutí navigace nahoru */
+            .top-bar { position: fixed; background: rgba(0,0,0,0.9); padding: 10px 20px; top: 0; left: 0; border-bottom: 1px solid #ff0000; }
+            
+            /* Úprava nápisů a časomíry uprostřed */
+            h1 { position: relative; top: 0; font-size: 2.5rem; margin-top: 90px; margin-bottom: 10px; width: 100%; }
+            .subtitle { font-size: 1.3rem; margin-bottom: 15px; }
+            .game-center { margin-right: 0; width: 100%; padding: 0 20px; box-sizing: border-box; }
+            .main-timer { font-size: 5.5rem; height: 100px; margin-bottom: 10px; }
+            .target-time { font-size: 1.6rem; }
+            .action-btn { padding: 15px 30px; font-size: 1.2rem; width: 100%; max-width: 300px; }
+            .spacebar-hint { display: none; } /* Na mobilu schováme nápovědu pro mezerník */
+            
+            /* Přesunutí pravého panelu pod hru */
+            .right-panel {
+                position: relative; right: 0; top: 0; width: 90%; max-width: 400px;
+                margin: 20px auto 0 auto; max-height: none; overflow: visible;
+            }
+            
+            /* Zmenšení vyskakovacích oken */
+            #rules-modal { width: 90% !important; max-width: 400px; padding: 20px; box-sizing: border-box; }
+            #rules-modal h2 { font-size: 1.5rem; }
+            #rules-modal p { font-size: 1rem; }
+            
+            .fullscreen-overlay h2 { font-size: 2.5rem !important; }
+            #imp-reveal-title { font-size: 1.8rem !important; }
+            .imp-vote-btn { font-size: 1.3rem; padding: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -175,6 +225,7 @@
         </div>
         <div id="srv-elimination-overlay" class="fullscreen-overlay">
             <h2 id="srv-elimination-text">PLAYER ELIMINATED!</h2>
+            <div class="overlay-hint">Press SPACE or click the button below</div>
             <button id="srv-continue-btn" class="action-btn stop-mode" onclick="srvDismissOverlay()">CONTINUE</button>
         </div>
     </div>
@@ -209,7 +260,7 @@
         <div id="imp-voting-overlay" class="fullscreen-overlay" style="background-color: black;">
             <h2 style="font-size: 4rem;">VOTE IMPOSTOR</h2>
             <div class="overlay-hint" id="imp-voting-subtitle" style="font-size: 2rem;">PLAYER1, cast your vote:</div>
-            <div id="imp-vote-buttons" style="display: flex; flex-direction: column; gap: 15px; width: 400px;"></div>
+            <div id="imp-vote-buttons"></div>
         </div>
         <div id="imp-result-overlay" class="fullscreen-overlay">
             <h2 id="imp-result-title">IMPOSTOR WAS PLAYER2!</h2>
@@ -574,7 +625,6 @@
                 fthBestAttempts.push({ name: pName, diffMs: diffMs, absDiff: Math.abs(diffMs), displayDiff: `${sign}${diffSec}` });
                 fthUpdateRightPanel();
 
-                // KONTROLA VÍTĚZSTVÍ
                 if (diffSec === "0.00" || diffSec === "-0.00") {
                     fthGameState = 'message';
                     document.getElementById('fth-winner-text').textContent = `${pName.toUpperCase()} WINS!`;
@@ -584,7 +634,7 @@
                     btn.textContent = 'NEXT PLAYER'; btn.classList.remove('stop-mode');
                 }
             } else if (fthGameState === 'finished') {
-                fthCurrentIdx = (fthCurrentIdx + 1) % fthPlayers.length; // Posun na dalšího hráče ve smyčce
+                fthCurrentIdx = (fthCurrentIdx + 1) % fthPlayers.length;
                 fthResetUI();
             }
         }
