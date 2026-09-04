@@ -110,12 +110,8 @@
         /* MOBILNÍ ZOBRAZENÍ (RESPONSIVE DESIGN)     */
         /* ========================================= */
         @media (max-width: 900px) {
-            body { 
-                overflow-y: auto; height: auto; min-height: 100vh; 
-            }
-            .view { 
-                height: auto; min-height: 100vh; justify-content: flex-start; padding-bottom: 40px; 
-            }
+            body { overflow-y: auto; height: auto; min-height: 100vh; }
+            .view { height: auto; min-height: 100vh; justify-content: flex-start; padding-bottom: 40px; }
             #menu-clock { font-size: 5rem; margin-top: 60px; margin-bottom: 30px; }
             .menu-buttons { flex-wrap: wrap; justify-content: center; max-width: 320px; gap: 15px; }
             .menu-btn { width: 140px; height: 140px; font-size: 1.2rem; }
@@ -180,7 +176,7 @@
         </div>
     </div>
 
-    <!-- HRA 2: SURVIVAL MODE (MULTIPLAYER LOBBY) -->
+    <!-- HRA 2: SURVIVAL MODE (MULTIPLAYER) -->
     <div id="survival-view" class="view">
         <div class="top-bar"><div class="circle-icon" onclick="showRules('srv')">i</div><div class="text-icon" onclick="backToMenu()">MENU</div></div>
         <h1>SURVIVAL MODE</h1>
@@ -209,9 +205,7 @@
             </div>
             <div class="panel-section" style="border-top: 1px solid red; padding-top: 10px;">
                 <div style="margin-bottom: 10px; font-weight: bold;">ROOM: <span id="srv-display-room" style="color: #00ff00;">---</span></div>
-                <div class="players-list-container" id="srv-online-players-list">
-                    <!-- Zde se automaticky objeví připojení hráči -->
-                </div>
+                <div class="players-list-container" id="srv-online-players-list"></div>
             </div>
         </div>
 
@@ -301,12 +295,12 @@
         <button class="close-btn" onclick="hideRules()">CLOSE</button>
     </div>
 
-    <!-- NAČTENÍ FIREBASE (COMPAT VERZE PRO JEDNODUCHÉ POUŽITÍ) -->
+    <!-- NAČTENÍ FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 
     <script>
-        // TVÁ FIREBASE KONFIGURACE (Očištěná a upravená)
+        // TVÁ FIREBASE KONFIGURACE
         const firebaseConfig = {
             apiKey: "AIzaSyD4CTj5rM751jOQQYwOTT8Li-3UxBgo3Cg",
             authDomain: "timergames.firebaseapp.com",
@@ -318,13 +312,9 @@
             measurementId: "G-5JYNFRPDJR"
         };
 
-        // INICIALIZACE DATABÁZE
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // ==========================================
-        // GLOBÁLNÍ A MENU
-        // ==========================================
         let activeGame = null;
 
         function updateMenuClock() {
@@ -344,7 +334,7 @@
                 activeGame = 'htt'; updatePlayerInputs('htt'); initHtt();
             } else if (gameId === 'survival') {
                 document.getElementById('survival-view').classList.add('active-view');
-                activeGame = 'srv'; initSrv(); // Zde nenačítáme lokální inputy
+                activeGame = 'srv'; initSrv();
             } else if (gameId === 'impostor') {
                 document.getElementById('impostor-view').classList.add('active-view');
                 activeGame = 'imp'; updatePlayerInputs('imp'); initImp();
@@ -359,6 +349,7 @@
             document.getElementById('menu-view').classList.add('active-view');
             document.querySelectorAll('.fullscreen-overlay').forEach(o => o.style.display = 'none');
             activeGame = null;
+            if (db && srvRoomId) db.ref('rooms/' + srvRoomId).off();
         }
 
         function updatePlayerInputs(mode) {
@@ -428,7 +419,7 @@
         let srvRoomId = null;
         let srvMyName = "";
         let srvIsHost = false;
-        let srvGameStateLocal = 'idle'; // idle nebo running
+        let srvGameStateLocal = 'idle';
         let srvStartLocal = 0;
         let srvRoomData = null;
 
@@ -447,7 +438,7 @@
             
             srvRoomId = null;
             srvGameStateLocal = 'idle';
-            if (db) db.ref('rooms').off(); 
+            if (db && srvRoomId) db.ref('rooms/' + srvRoomId).off(); 
         }
 
         function srvCreateRoom() {
@@ -455,12 +446,10 @@
             srvRoomId = Math.random().toString(36).substring(2, 6).toUpperCase();
             srvIsHost = true;
 
-            // Host vytvoří základní stav místnosti
             db.ref('rooms/' + srvRoomId).set({
                 state: 'lobby',
                 host: srvMyName,
-                allPlayers: { [srvMyName]: true },
-                activePlayers: [srvMyName],
+                players: { [srvMyName]: true },
                 round: 1
             });
 
@@ -479,18 +468,7 @@
                     srvRoomId = code;
                     srvIsHost = false;
                     
-                    // Bezpečně přidáme hráče do databáze, aniž bychom smazali ostatní
-                    db.ref('rooms/' + srvRoomId + '/activePlayers').once('value', activeSnap => {
-                        let active = activeSnap.val() || [];
-                        if (!active.includes(srvMyName)) {
-                            active.push(srvMyName);
-                        }
-                        
-                        db.ref('rooms/' + srvRoomId).update({ 
-                            activePlayers: active,
-                            [`allPlayers/${srvMyName}`]: true 
-                        });
-                    });
+                    db.ref('rooms/' + srvRoomId + '/players').update({ [srvMyName]: true });
                     
                     document.getElementById('srv-display-room').textContent = srvRoomId;
                     document.getElementById('srv-display-room').style.color = '#00ff00';
@@ -502,7 +480,6 @@
         }
 
         function srvListenToRoom() {
-            // Hlavní smyčka, která hlídá změny na serveru
             db.ref('rooms/' + srvRoomId).on('value', snapshot => {
                 srvRoomData = snapshot.val();
                 if (!srvRoomData) return;
@@ -513,19 +490,19 @@
         function srvUpdateUI() {
             if (!srvRoomData) return;
 
-            // 1. Vykreslení jmen hráčů
             const playersContainer = document.getElementById('srv-online-players-list');
             playersContainer.innerHTML = '';
-            let active = srvRoomData.activePlayers || [];
-            active.forEach(p => {
+            let playersObj = srvRoomData.players || {};
+            let activeNames = Object.keys(playersObj);
+
+            activeNames.forEach(p => {
                 let color = (p === srvMyName) ? '#ffffff' : '#00aa00';
                 playersContainer.innerHTML += `<div style="color: ${color}; font-size: 1.2rem; margin-top: 5px;">⬤ ${p}</div>`;
             });
 
-            // 2. Vykreslení výsledků v pravém panelu
             let resHtml = '';
             if (srvRoomData.results) {
-                Object.keys(srvRoomData.results).forEach((pName, i) => {
+                Object.keys(srvRoomData.results).forEach((pName) => {
                     let res = srvRoomData.results[pName];
                     let color = res.diffMs > 0 ? '#ff5555' : '#55ff55';
                     resHtml += `<div><span>${pName}</span><span style="color:${color}">${res.displayDiff}</span></div>`;
@@ -538,7 +515,6 @@
             const subtitle = document.getElementById('srv-subtitle');
             const targetDisp = document.getElementById('srv-target-display');
 
-            // --- STAV LOBBY ---
             if (srvRoomData.state === 'lobby') {
                 document.getElementById('srv-elimination-overlay').style.display = 'none';
                 subtitle.textContent = "WAITING IN LOBBY";
@@ -547,14 +523,13 @@
                 if (srvIsHost) {
                     btn.textContent = "START GAME";
                     btn.style.backgroundColor = '#00aa00';
-                    hint.textContent = `WAITING FOR PLAYERS (${active.length})`;
+                    hint.textContent = `WAITING FOR PLAYERS (${activeNames.length})`;
                 } else {
                     btn.textContent = "WAITING FOR HOST";
                     btn.style.backgroundColor = '#555';
                     hint.textContent = "HOST WILL START THE GAME";
                 }
             } 
-            // --- STAV HRANÍ ---
             else if (srvRoomData.state === 'playing') {
                 document.getElementById('srv-elimination-overlay').style.display = 'none';
                 subtitle.textContent = srvRoomData.tieBreaker ? "TIE-BREAKER" : `ROUND ${srvRoomData.round}`;
@@ -566,7 +541,6 @@
                     subtitle.textContent += ` - ${currentPlayer.toUpperCase()}'S TURN`;
                     
                     if (currentPlayer === srvMyName) {
-                        // Jsem na řadě!
                         if (srvGameStateLocal === 'idle') {
                             btn.textContent = `START (${srvMyName})`;
                             btn.style.backgroundColor = '#00aa00';
@@ -574,14 +548,12 @@
                             hint.textContent = "YOUR TURN! PRESS SPACEBAR";
                         }
                     } else {
-                        // Hraje někdo jiný
                         btn.textContent = `WAITING FOR ${currentPlayer.toUpperCase()}`;
                         btn.style.backgroundColor = '#555';
                         btn.classList.remove('stop-mode');
                         hint.textContent = "WATCHING...";
                     }
                 } else {
-                    // Kolo skončilo, Host vyhodnocuje
                     if (srvIsHost) {
                         btn.textContent = "EVALUATING...";
                         srvHostEvaluateRound();
@@ -591,7 +563,6 @@
                     }
                 }
             }
-            // --- STAV VYHODNOCENÍ (ELIMINACE) ---
             else if (srvRoomData.state === 'evaluating') {
                 if (srvRoomData.winner) {
                     srvShowOverlay(`${srvRoomData.winner.toUpperCase()} WINS!`, `SURVIVOR!`, true);
@@ -603,18 +574,17 @@
             }
         }
 
-        // Akce po stisknutí tlačítka / mezerníku
         function srvHandleAction() {
-            if (!srvRoomData) return alert("Create or Join a room first!");
+            if (!srvRoomId) return alert("Create or Join a room first!");
             
             if (srvRoomData.state === 'lobby' && srvIsHost) {
-                if (srvRoomData.activePlayers.length < 2) return alert("Need at least 2 players!");
-                srvHostStartRound(srvRoomData.activePlayers, false);
+                let players = Object.keys(srvRoomData.players || {});
+                if (players.length < 2) return alert("Need at least 2 players!");
+                srvHostStartRound(players, false);
             } 
             else if (srvRoomData.state === 'playing') {
                 let queue = srvRoomData.queue || [];
                 if (queue[0] === srvMyName) {
-                    // Logika měření času pro aktuálního hráče
                     if (srvGameStateLocal === 'idle') {
                         srvGameStateLocal = 'running';
                         srvStartLocal = Date.now();
@@ -634,7 +604,6 @@
                         let sign = diffMs > 0 ? '+' : '';
                         document.getElementById('srv-result-message').textContent = `DIFFERENCE: ${sign}${diffSec}s`;
                         
-                        // Odeslání výsledku a odebrání se z fronty
                         let newQueue = [...queue];
                         newQueue.shift(); 
                         
@@ -647,7 +616,6 @@
             }
         }
 
-        // Hostitelské funkce (generují časy a vyřazují)
         function srvHostStartRound(playersToPlay, isTie) {
             let targetMs = isTie ? srvRoomData.targetMs : (Math.floor(Math.random() * 4000) + 2000);
             
@@ -655,7 +623,7 @@
                 state: 'playing',
                 targetMs: targetMs,
                 queue: playersToPlay,
-                results: null, // Vymaže výsledky minulého kola
+                results: null,
                 tieBreaker: isTie
             });
         }
@@ -666,25 +634,32 @@
             let results = srvRoomData.results || {};
             let resultArr = Object.keys(results).map(name => ({ name, ...results[name] }));
             
-            // Najde nejhorší odchylku
             let maxDiff = -1;
             resultArr.forEach(r => { if (r.absDiff > maxDiff) maxDiff = r.absDiff; });
             
-            // Kdo všechno ji má?
             let worstPlayers = resultArr.filter(r => r.absDiff === maxDiff).map(r => r.name);
             
             if (worstPlayers.length > 1) {
-                // Rozstřel
                 db.ref('rooms/' + srvRoomId).update({ state: 'evaluating', tieBreaker: true, queue: worstPlayers });
             } else {
-                // Eliminace jednoho
                 let eliminatedName = worstPlayers[0];
-                let newActive = (srvRoomData.activePlayers || []).filter(p => p !== eliminatedName);
+                let currentPlayers = Object.keys(srvRoomData.players || {});
+                let newActive = currentPlayers.filter(p => p !== eliminatedName);
                 
                 if (newActive.length === 1) {
-                    db.ref('rooms/' + srvRoomId).update({ state: 'evaluating', tieBreaker: false, winner: newActive[0], eliminatedLast: eliminatedName, activePlayers: newActive });
+                    db.ref('rooms/' + srvRoomId).update({ state: 'evaluating', tieBreaker: false, winner: newActive[0], eliminatedLast: eliminatedName });
                 } else {
-                    db.ref('rooms/' + srvRoomId).update({ state: 'evaluating', tieBreaker: false, eliminatedLast: eliminatedName, activePlayers: newActive, round: srvRoomData.round + 1 });
+                    // Aktualizujeme seznam přeživších v objektu players
+                    let newPlayersObj = {};
+                    newActive.forEach(p => newPlayersObj[p] = true);
+                    
+                    db.ref('rooms/' + srvRoomId).update({ 
+                        state: 'evaluating', 
+                        tieBreaker: false, 
+                        eliminatedLast: eliminatedName, 
+                        players: newPlayersObj,
+                        round: srvRoomData.round + 1 
+                    });
                 }
             }
         }
@@ -711,16 +686,21 @@
             if (!srvIsHost) return alert("Only the HOST can continue the game!");
             
             if (srvRoomData.winner) {
-                // Reset do lobby se všemi původními hráči
-                db.ref('rooms/' + srvRoomId).update({
-                    state: 'lobby',
-                    activePlayers: Object.keys(srvRoomData.allPlayers), 
-                    round: 1, winner: null, tieBreaker: false, results: null
+                // Reset hry
+                db.ref('rooms/' + srvRoomId).once('value').then(snapshot => {
+                    let data = snapshot.val();
+                    let all = data.allPlayers || data.players;
+                    db.ref('rooms/' + srvRoomId).update({
+                        state: 'lobby',
+                        players: all,
+                        round: 1, winner: null, tieBreaker: false, results: null
+                    });
                 });
             } else if (srvRoomData.tieBreaker) {
-                srvHostStartRound(srvRoomData.queue, true); // Rozstřel na stejný čas
+                srvHostStartRound(srvRoomData.queue, true);
             } else {
-                srvHostStartRound(srvRoomData.activePlayers, false); // Nové kolo, nový čas
+                let currentActive = Object.keys(srvRoomData.players || {});
+                srvHostStartRound(currentActive, false);
             }
         }
 
